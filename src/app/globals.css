@@ -1,0 +1,119 @@
+/* LURP / London Underworld RP themed global styling */
+
+:root {
+  --bg-0: #07070a;
+  --bg-1: #0b0b10;
+  --panel: rgba(18, 18, 24, 0.72);
+  --panel-2: rgba(18, 18, 24, 0.56);
+  --stroke: rgba(255, 255, 255, 0.10);
+  --stroke-2: rgba(255, 255, 255, 0.06);
+
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.64);
+
+  /* Ember / Underworld orange */
+  --accent: #ff8a1f;
+  --accent-2: #ff5a1a;
+  --accent-soft: rgba(255, 138, 31, 0.18);
+  --accent-glow: rgba(255, 120, 25, 0.25);
+
+  --good: #32d583;
+  --warn: #fdb022;
+  --bad: #f04438;
+
+  --radius: 16px;
+  --radius-sm: 12px;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  color: var(--text);
+  background:
+    radial-gradient(1200px 600px at 55% 20%, rgba(255, 138, 31, 0.10), transparent 62%),
+    radial-gradient(900px 500px at 20% 75%, rgba(255, 90, 26, 0.08), transparent 60%),
+    radial-gradient(900px 600px at 80% 70%, rgba(255, 138, 31, 0.06), transparent 60%),
+    linear-gradient(180deg, var(--bg-0), var(--bg-1));
+  overflow-x: hidden;
+}
+
+/* Subtle "ash" / smoke grain overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.20;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.06), transparent 40%),
+    radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.05), transparent 45%),
+    radial-gradient(circle at 40% 85%, rgba(255, 255, 255, 0.05), transparent 50%);
+  mix-blend-mode: overlay;
+  filter: blur(0.3px);
+}
+
+/* Ember specks */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.20;
+  background-image:
+    radial-gradient(circle at 15% 55%, rgba(255, 138, 31, 0.35) 0 1px, transparent 2px),
+    radial-gradient(circle at 35% 25%, rgba(255, 90, 26, 0.30) 0 1px, transparent 2px),
+    radial-gradient(circle at 75% 45%, rgba(255, 138, 31, 0.28) 0 1px, transparent 2px),
+    radial-gradient(circle at 60% 80%, rgba(255, 90, 26, 0.22) 0 1px, transparent 2px);
+  background-size: 520px 520px;
+  animation: emberFloat 14s linear infinite;
+}
+
+@keyframes emberFloat {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-24px); }
+}
+
+/* Links */
+a {
+  color: inherit;
+}
+
+/* Scrollbar (Chromium) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 138, 31, 0.18);
+  border: 1px solid rgba(255, 138, 31, 0.25);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 138, 31, 0.28);
+}
+
+/* Selection */
+::selection {
+  background: rgba(255, 138, 31, 0.28);
+}
+
+/* Utility containers (optional use) */
+.lurp-panel {
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  backdrop-filter: blur(14px);
+}
+
+.lurp-outline {
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+}

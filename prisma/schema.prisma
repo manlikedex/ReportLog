@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+enum StaffRole {
+  MODERATOR
+  ADMIN
+  SENIOR
+  MANAGEMENT
+}
+
+enum IdentifierType {
+  LICENSE
+  STEAM
+  DISCORD
+  IP
+}
+
+enum CaseType {
+  PLAYER_REPORT
+  STAFF_OBSERVATION
+  APPEAL
+  INVESTIGATION
+}
+
+enum CaseStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  APPEALED
+}
+
+model StaffUser {
+  id          String    @id @default(cuid())
+  discordId   String    @unique
+  username    String?
+  role        StaffRole @default(MODERATOR)
+  active      Boolean   @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  createdCases Case[]    @relation("CreatedCases")
+  auditLogs    AuditLog[]
+}
+
+model Player {
+  id          String   @id @default(cuid())
+  currentName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  identifiers PlayerIdentifier[]
+  aliases     PlayerAlias[]
+  notes       PlayerNote[]
+  flags       PlayerFlag[]
+  caseLinks   CasePerson[]
+}
+
+model PlayerIdentifier {
+  id        String         @id @default(cuid())
+  playerId  String
+  type      IdentifierType
+  value     String
+  firstSeen DateTime       @default(now())
+  lastSeen  DateTime       @default(now())
+
+  player    Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([type, value])
+  @@unique([type, value])
+}
+
+model PlayerAlias {
+  id        String   @id @default(cuid())
+  playerId  String
+  name      String
+  firstSeen DateTime @default(now())
+  lastSeen  DateTime @default(now())
+
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([name])
+}
+
+model Case {
+  id          String     @id @default(cuid())
+  type        CaseType
+  status      CaseStatus @default(OPEN)
+  summary     String
+  severity    Int        @default(1) // 1-5
+  createdById String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  createdBy   StaffUser  @relation("CreatedCases", fields: [createdById], references: [id])
+  people      CasePerson[]
+  actions     CaseAction[]
+  evidence    CaseEvidence[]
+
+    // --- Primary player info (optional)
+  characterName   String?
+  discordName     String?
+  discordId       String?
+  fivemIdentifier String?
+
+  // --- Rules selected (store as JSON array of rule codes like ["3.10","12.1"])
+  rulesSelected   Json?
+
+}
+
+model CasePerson {
+  id       String @id @default(cuid())
+  caseId   String
+  playerId String
+  role     String // reporter/accused/witness/other
+
+  c        Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  p        Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([playerId])
+}
+
+model CaseAction {
+  id        String   @id @default(cuid())
+  caseId    String
+  type      String   // warning/kick/ban/restriction/note
+  reason    String
+  duration  String?  // e.g. "3d", "perm"
+  createdBy String
+  createdAt DateTime @default(now())
+
+  c         Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+}
+
+model CaseEvidence {
+  id        String   @id @default(cuid())
+  caseId    String
+  kind      String   // link/upload/text
+  value     String
+  createdBy String
+  createdAt DateTime @default(now())
+
+  c         Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+}
+
+model PlayerNote {
+  id        String   @id @default(cuid())
+  playerId  String
+  note      String
+  visibility String  @default("STAFF") // STAFF / SENIOR+
+  createdBy String
+  createdAt DateTime @default(now())
+
+  p         Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+}
+
+model PlayerFlag {
+  id        String   @id @default(cuid())
+  playerId  String
+  flagType  String
+  severity  Int      @default(1)
+  active    Boolean  @default(true)
+  createdBy String
+  createdAt DateTime @default(now())
+
+  p         Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String
+  action      String
+  targetType  String
+  targetId    String?
+  beforeJson  Json?
+  afterJson   Json?
+  ip          String?
+  createdAt   DateTime @default(now())
+
+  actor       StaffUser @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
+}
