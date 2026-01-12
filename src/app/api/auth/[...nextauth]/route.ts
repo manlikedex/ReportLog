@@ -3,6 +3,18 @@ import DiscordProvider from "next-auth/providers/discord";
 import { prisma } from "@/lib/prisma";
 import { fetchDiscordMemberRoleIds, roleFromDiscordRoleIds } from "@/lib/discord-rbac";
 
+type DiscordProfile = { id?: string; username?: string; global_name?: string };
+
+function discordIdFrom(profile: unknown): string | null {
+  const p = profile as DiscordProfile | null | undefined;
+  return p?.id ? String(p.id) : null;
+}
+
+function usernameFrom(profile: unknown): string | null {
+  const p = profile as DiscordProfile | null | undefined;
+  return (p?.global_name || p?.username || null) as string | null;
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     DiscordProvider({
@@ -14,22 +26,16 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async signIn({ profile }) {
-      const discordId = profile?.id ? String(profile.id) : null;
+      const discordId = discordIdFrom(profile);
       if (!discordId) return false;
 
-      // Pull roles from your Discord guild via bot
       const roleIds = await fetchDiscordMemberRoleIds(discordId);
       const mappedRole = roleFromDiscordRoleIds(roleIds);
 
-      // If user doesn't have any allowed staff roles => block sign-in
       if (!mappedRole) return false;
 
-      const username =
-        (profile as any)?.global_name ||
-        (profile as any)?.username ||
-        null;
+      const username = usernameFrom(profile);
 
-      // Upsert staff user so DB always matches Discord role membership
       await prisma.staffUser.upsert({
         where: { discordId },
         update: {
@@ -51,10 +57,8 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt({ token, profile }) {
-      // On login, attach StaffUser info to JWT
-      if (profile?.id) {
-        const discordId = String(profile.id);
-
+      const discordId = discordIdFrom(profile);
+      if (discordId) {
         const staff = await prisma.staffUser.findUnique({
           where: { discordId },
           select: { id: true, role: true, discordId: true, active: true },
@@ -65,22 +69,20 @@ export const authOptions: NextAuthOptions = {
           (token as any).staffRole = staff.role;
           (token as any).discordId = staff.discordId;
         } else {
-          // If deactivated in DB, block permissions
           (token as any).staffUserId = null;
           (token as any).staffRole = null;
           (token as any).discordId = discordId;
         }
       }
-
       return token;
     },
 
     async session({ session, token }) {
       const s: any = session;
       s.user = s.user || {};
-      s.user.id = (token as any).staffUserId || null;
-      s.user.role = (token as any).staffRole || null;
-      s.user.discordId = (token as any).discordId || null;
+      s.user.id = (token as any).staffUserId ?? null;
+      s.user.role = (token as any).staffRole ?? null;
+      s.user.discordId = (token as any).discordId ?? null;
       return session;
     },
   },
